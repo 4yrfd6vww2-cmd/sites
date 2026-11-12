@@ -57,11 +57,7 @@ async def operator_ws(ws: WebSocket):
         OPERATORS.discard(ws)
 
 @app.post("/api/collect")
-async def collect(req: Request):
-    try:
-        body = await req.json()
-    except Exception:
-        body = {}
+async def collect(req: Request, body: dict):
     rec = {
         "id": str(uuid.uuid4()),
         "ts": time.time(),
