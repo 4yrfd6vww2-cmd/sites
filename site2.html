@@ -21,12 +21,14 @@ h2{margin-top:0}
 <h2>Входящие данные</h2>
 <div id="feed"></div>
 <script>
-const HOST = "sites-gt5x.onrender.com";
-const WS = (location.protocol === "https:" ? "wss://" : "ws://") + HOST + "/ws/operator";
-const API = "https://" + HOST + "/api/hits";
-let ws = null;
+const API = "https://sites-gt5x.onrender.com/api/hits";
+let lastCount = -1;
+let seenIds = new Set();
 
 function render(r) {
+  if (seenIds.has(r.id)) return;
+  seenIds.add(r.id);
+
   const feed = document.getElementById("feed");
   const card = document.createElement("div");
   card.className = "card";
@@ -64,18 +66,27 @@ function render(r) {
   feed.insertBefore(card, feed.firstChild);
 }
 
-function connect() {
-  ws = new WebSocket(WS);
-  ws.onmessage = ev => {
-    try { render(JSON.parse(ev.data)); } catch(e) { console.error(e); }
-  };
-  ws.onopen = () => {
-    document.getElementById("feed").innerHTML = "";
-    fetch(API).then(r=>r.json()).then(a => a.reverse().forEach(render)).catch(()=>{});
-  };
-  ws.onclose = () => setTimeout(connect, 3000);
+async function fetchData() {
+  try {
+    const res = await fetch(API);
+    const data = await res.json();
+    
+    // Если количество записей изменилось, обновляем
+    if (data.length !== lastCount) {
+      lastCount = data.length;
+      // Рендерим в обратном порядке (новые сверху)
+      const reversed = [...data].reverse();
+      reversed.forEach(render);
+    }
+  } catch (e) {
+    console.error("Ошибка загрузки:", e);
+  }
 }
-connect();
+
+// Запускаем сразу
+fetchData();
+// И потом каждые 3 секунды
+setInterval(fetchData, 3000);
 </script>
 </body>
 </html>
