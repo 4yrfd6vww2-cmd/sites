@@ -7,7 +7,6 @@ import sqlite3, json, time, uuid, os
 DB_PATH = os.path.join(os.path.dirname(__file__), "hits.db")
 OPERATORS = set()
 
-
 def init_db():
     c = sqlite3.connect(DB_PATH)
     c.execute("""
@@ -22,12 +21,10 @@ def init_db():
     c.commit()
     c.close()
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
     yield
-
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
@@ -36,7 +33,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 async def broadcast(payload: dict):
     dead = []
@@ -47,7 +43,6 @@ async def broadcast(payload: dict):
             dead.append(ws)
     for ws in dead:
         OPERATORS.discard(ws)
-
 
 @app.websocket("/ws/operator")
 async def operator_ws(ws: WebSocket):
@@ -61,10 +56,12 @@ async def operator_ws(ws: WebSocket):
     finally:
         OPERATORS.discard(ws)
 
-
 @app.post("/api/collect")
 async def collect(req: Request):
-    body = await req.json()
+    try:
+        body = await req.json()
+    except Exception:
+        body = {}
     rec = {
         "id": str(uuid.uuid4()),
         "ts": time.time(),
@@ -72,34 +69,38 @@ async def collect(req: Request):
         "ua": req.headers.get("user-agent", ""),
         "data": body,
     }
-    c = sqlite3.connect(DB_PATH)
-    c.execute(
-        "INSERT INTO hits VALUES(?,?,?,?,?)",
-        (rec["id"], rec["ts"], rec["ip"], rec["ua"], json.dumps(body, default=str)),
-    )
-    c.commit()
-    c.close()
+    try:
+        c = sqlite3.connect(DB_PATH)
+        c.execute(
+            "INSERT INTO hits VALUES(?,?,?,?,?)",
+            (rec["id"], rec["ts"], rec["ip"], rec["ua"], json.dumps(body, default=str)),
+        )
+        c.commit()
+        c.close()
+    except Exception as e:
+        print("DB ERROR:", e)
+    
     await broadcast(rec)
     return {"ok": True}
 
-
 @app.get("/api/hits")
 def hits(limit: int = 200):
-    c = sqlite3.connect(DB_PATH)
-    rows = c.execute(
-        "SELECT id, ts, ip, ua, data FROM hits ORDER BY ts DESC LIMIT ?", (limit,)
-    ).fetchall()
-    c.close()
-    return [
-        {"id": r[0], "ts": r[1], "ip": r[2], "ua": r[3], "data": json.loads(r[4])}
-        for r in rows
-    ]
-
+    try:
+        c = sqlite3.connect(DB_PATH)
+        rows = c.execute(
+            "SELECT id, ts, ip, ua, data FROM hits ORDER BY ts DESC LIMIT ?", (limit,)
+        ).fetchall()
+        c.close()
+        return [
+            {"id": r[0], "ts": r[1], "ip": r[2], "ua": r[3], "data": json.loads(r[4])}
+            for r in rows
+        ]
+    except Exception:
+        return []
 
 @app.get("/")
 def site1():
     return FileResponse(os.path.join(os.path.dirname(__file__), "site1.html"))
-
 
 @app.get("/panel")
 def site2():
