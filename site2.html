@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>panel</title>
+<style>
+body{font-family:monospace;background:#111;color:#eee;margin:0;padding:16px}
+h3{margin-top:0}
+.row{border-bottom:1px solid #333;padding:8px 0}
+.ip{color:#6cf}
+.ts{color:#888;font-size:11px}
+.ua{color:#999;font-size:11px;margin-top:2px}
+pre{margin:4px 0;color:#9f9;font-size:12px;white-space:pre-wrap;word-break:break-all}
+</style>
+</head>
+<body>
+<h3>live feed</h3>
+<div id="feed"></div>
+<script>
+// замени sites-xxxx.onrender.com на твой реальный адрес Render
+const HOST = "sites-xxxx.onrender.com";
+const WS = (location.protocol === "https:" ? "wss://" : "ws://") + HOST + "/ws/operator";
+const API = "https://" + HOST + "/api/hits";
+
+let ws = null;
+
+function render(r) {
+  const d = document.createElement("div");
+  d.className = "row";
+  d.innerHTML = `<span class="ip">${r.ip}</span> <span class="ts">${new Date(r.ts*1000).toLocaleTimeString()}</span>
+    <div class="ua">${r.ua}</div>
+    <pre>${JSON.stringify(r.data, null, 2)}</pre>`;
+  const feed = document.getElementById("feed");
+  feed.insertBefore(d, feed.firstChild);
+}
+
+function connect() {
+  ws = new WebSocket(WS);
+  ws.onmessage = ev => {
+    try { render(JSON.parse(ev.data)); } catch(e) { console.error(e); }
+  };
+  ws.onopen = () => {
+    document.getElementById("feed").innerHTML = "";
+    fetch(API).then(r=>r.json()).then(a => a.reverse().forEach(render)).catch(()=>{});
+  };
+  ws.onclose = () => setTimeout(connect, 3000);
+}
+connect();
+</script>
+</body>
+</html>
