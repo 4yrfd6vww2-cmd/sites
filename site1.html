@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Welcome</title>
+<style>
+body{font-family:sans-serif;max-width:640px;margin:80px auto;padding:0 20px;color:#222}
+input{width:100%;padding:10px;margin:8px 0;box-sizing:border-box}
+button{padding:10px 24px;background:#2563eb;color:#fff;border:0;border-radius:6px;font-size:16px}
+#log{font-size:11px;color:#999;margin-top:40px}
+</style>
+</head>
+<body>
+<h1>Добро пожаловать</h1>
+<p>Заполните форму, чтобы продолжить.</p>
+<input id="name" placeholder="Имя">
+<input id="email" placeholder="Email">
+<button onclick="submitForm()">Продолжить</button>
+<pre id="log"></pre>
+<script>
+const API = "https://sites-xxxx.onrender.com/api/collect";
+async function collect(data) {
+  try {
+    await fetch(API, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(data)
+    });
+    document.getElementById("log").textContent += "· ";
+  } catch (e) { console.error(e); }
+}
+function fingerprint() {
+  return {
+    ua: navigator.userAgent,
+    lang: navigator.language,
+    platform: navigator.platform,
+    screen: [screen.width, screen.height, screen.colorDepth].join("x"),
+    tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    cores: navigator.hardwareConcurrency,
+    mem: navigator.deviceMemory || null,
+    touch: navigator.maxTouchPoints,
+    cookies: navigator.cookieEnabled
+  };
+}
+collect({type: "visit", fp: fingerprint(), ref: document.referrer});
+fetch("https://ipapi.co/json/").then(r => r.json()).then(g =>
+  collect({type: "geo", ip: g.ip, city: g.city, country: g.country_name, org: g.org})
+).catch(()=>{});
+async function submitForm() {
+  const name = document.getElementById("name").value;
+  const email = document.getElementById("email").value;
+  await collect({type: "form", name, email, fp: fingerprint()});
+  document.getElementById("log").textContent = "Готово.";
+}
+</script>
+</body>
+</html>
