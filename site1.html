@@ -19,38 +19,49 @@ button{padding:10px 24px;background:#2563eb;color:#fff;border:0;border-radius:6p
 <button onclick="submitForm()">Продолжить</button>
 <pre id="log"></pre>
 <script>
-const API = "https://sites-gt5x.onrender.com";
+const API = "https://sites-gt5x.onrender.com/api/collect";
+
 async function collect(data) {
   try {
-    await fetch(API, {
+    const res = await fetch(API, {
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify(data)
     });
-    document.getElementById("log").textContent += "· ";
-  } catch (e) { console.error(e); }
+    if (res.ok) {
+      document.getElementById("log").textContent += "· ";
+    } else {
+      document.getElementById("log").textContent = "Ошибка сервера: " + res.status;
+    }
+  } catch (e) {
+    document.getElementById("log").textContent = "Ошибка сети: " + e.message;
+  }
 }
+
 function fingerprint() {
   return {
     ua: navigator.userAgent,
     lang: navigator.language,
-    platform: navigator.platform,
-    screen: [screen.width, screen.height, screen.colorDepth].join("x"),
-    tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    cores: navigator.hardwareConcurrency,
-    mem: navigator.deviceMemory || null,
-    touch: navigator.maxTouchPoints,
-    cookies: navigator.cookieEnabled
+    screen: screen.width + "x" + screen.height,
+    tz: Intl.DateTimeFormat().resolvedOptions().timeZone
   };
 }
-collect({type: "visit", fp: fingerprint(), ref: document.referrer});
-fetch("https://ipapi.co/json/").then(r => r.json()).then(g =>
-  collect({type: "geo", ip: g.ip, city: g.city, country: g.country_name, org: g.org})
-).catch(()=>{});
+
+// Отправляем при загрузке
+collect({type: "visit", fp: fingerprint()});
+
 async function submitForm() {
   const name = document.getElementById("name").value;
   const email = document.getElementById("email").value;
-  await collect({type: "form", name, email, fp: fingerprint()});
+  document.getElementById("log").textContent = "Отправка...";
+  
+  await collect({
+    type: "form", 
+    name: name, 
+    email: email, 
+    fp: fingerprint()
+  });
+  
   document.getElementById("log").textContent = "Готово.";
 }
 </script>
